@@ -28,6 +28,7 @@ func RootCmd() *cobra.Command {
 		listenCmd(),
 		setFreqCmd(),
 		statusCmd(),
+		factoryResetCmd(),
 	)
 
 	return rootCmd
@@ -274,4 +275,49 @@ You can also specify the output format: TEXT (default), XML, or JSON`,
 	statusCmd.Flags().StringVar(&format, "format", "TEXT", "Output format (TEXT, XML, JSON)")
 
 	return statusCmd
+}
+
+func factoryResetCmd() *cobra.Command {
+	var all bool
+
+	factoryResetCmd := &cobra.Command{
+		Use:   "reset",
+		Short: "Perform a factory reset on the RFPlayer",
+		Long: `Perform a factory reset on the RFPlayer. 
+Use the --all flag to reset everything including PARROT records and TRANSCODER configuration.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rf, err := initRFPlayer()
+			if err != nil {
+				return err
+			}
+			defer rf.Close()
+
+			// Prompt for confirmation
+			cmd.Print("Are you sure you want to perform a factory reset? This action cannot be undone. (y/N): ")
+			var confirm string
+			fmt.Scanln(&confirm)
+			if strings.ToLower(confirm) != "y" {
+				cmd.Println("Factory reset cancelled.")
+				return nil
+			}
+
+			cmd.Println("Performing factory reset...")
+			err = rf.FactoryReset(all)
+			if err != nil {
+				return fmt.Errorf("factory reset failed: %v", err)
+			}
+
+			if all {
+				cmd.Println("Full factory reset completed successfully. All settings, including PARROT records and TRANSCODER configuration, have been reset.")
+			} else {
+				cmd.Println("Factory reset completed successfully. Note that PARROT records and TRANSCODER configuration were not affected.")
+			}
+
+			return nil
+		},
+	}
+
+	factoryResetCmd.Flags().BoolVar(&all, "all", false, "Reset everything, including PARROT records and TRANSCODER configuration")
+
+	return factoryResetCmd
 }

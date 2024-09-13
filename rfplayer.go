@@ -19,7 +19,7 @@ func New(portName string) (*RFPlayer, error) {
 	config := &serial.Config{
 		Name:        portName,
 		Baud:        115200,
-		ReadTimeout: time.Second * 15,
+		ReadTimeout: time.Second * 5,
 	}
 
 	port, err := serial.OpenPort(config)
@@ -152,6 +152,27 @@ func (r *RFPlayer) GetStatus(statusType string, format string) (string, error) {
 func (r *RFPlayer) ParrotRemapping(protocol string, startID int) (string, error) {
 	cmd := fmt.Sprintf("REMAPPING PARROT ONOFF %s %s", protocol, idToX10(startID))
 	return r.SendCommand(cmd)
+}
+
+// FactoryReset performs a factory reset on the RFPlayer
+func (r *RFPlayer) FactoryReset(all bool) error {
+	var cmd string
+	if all {
+		cmd = "FACTORYRESET ALL"
+	} else {
+		cmd = "FACTORYRESET"
+	}
+
+	response, err := r.SendCommand(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to send factory reset command: %v", err)
+	}
+
+	if !strings.Contains(response, "OK") {
+		return fmt.Errorf("unexpected response to factory reset: %s", response)
+	}
+
+	return nil
 }
 
 // Helper function to convert ID to X10 format
