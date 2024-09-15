@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brutella/hap"
+	"github.com/brutella/hap/accessory"
 	rfplayer "github.com/julienrbrt/rfplayer-go"
-
 	"github.com/spf13/cobra"
 )
 
@@ -28,6 +29,7 @@ func RootCmd() *cobra.Command {
 		listenCmd(),
 		setFreqCmd(),
 		statusCmd(),
+		homekitCmd(),
 		factoryResetCmd(),
 	)
 
@@ -55,7 +57,7 @@ func initRFPlayer() (*rfplayer.RFPlayer, error) {
 func helloCmd() *cobra.Command {
 	helloCmd := &cobra.Command{
 		Use:   "hello",
-		Short: "Send HELLO command to RFPlayer",
+		Short: "Display device information",
 		Long:  "Send HELLO command to RFPlayer to get device information",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
@@ -229,7 +231,7 @@ func statusCmd() *cobra.Command {
 
 	statusCmd := &cobra.Command{
 		Use:   "status [type]",
-		Short: "Get RFPlayer status",
+		Short: "Display RFPlayer status",
 		Long: `Get RFPlayer status. Available types:
 - SYSTEM: General system information
 - RADIO: Radio-related information
@@ -320,4 +322,69 @@ Use the --all flag to reset everything including PARROT records and TRANSCODER c
 	factoryResetCmd.Flags().BoolVar(&all, "all", false, "Reset everything, including PARROT records and TRANSCODER configuration")
 
 	return factoryResetCmd
+}
+
+func homekitCmd() *cobra.Command {
+	var pin string
+
+	homekitCmd := &cobra.Command{
+		Use:   "homekit",
+		Short: "Start HomeKit server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rf, err := initRFPlayer()
+			if err != nil {
+				return err
+			}
+			defer rf.Close()
+
+			devices, err := rfplayer.GetParrotDevices(rf)
+			if err != nil {
+				return fmt.Errorf("failed to get Parrot devices: %v", err)
+			}
+
+			var accessories []*accessory.A
+			for _, dev := range devices {
+				info := accessory.Info{
+					Name:         dev.Name,
+					SerialNumber: fmt.Sprintf("%d", dev.ID),
+					Manufacturer: "RFPlayer",
+					Model:        dev.Protocol,
+				}
+				acc, err := rfplayer.NewRFDeviceAccessory(info, rf, dev.ID, dev.Protocol)
+				if err != nil {
+					return fmt.Errorf("failed to create RF device accessory: %v", err)
+				}
+
+				accessories = append(accessories, acc.A)
+			}
+
+			if len(accessories) == 0 {
+				return fmt.Errorf("no devices found in Parrot memory")
+			}
+
+			bridge := accessory.New(accessory.Info{
+				Name:         "RFPlayer Bridge",
+				SerialNumber: "RF0001",
+				Manufacturer: "RFPlayer",
+				Model:        "Bridge",
+			}, accessory.TypeBridge)
+
+			fs := hap.NewFsStore("./db")
+			server, err := hap.NewServer(fs, bridge, accessories...)
+			if err != nil {
+				return fmt.Errorf("failed to create HomeKit server: %v", err)
+			}
+
+			server.Pin = pin
+
+			cmd.Printf("HomeKit server is running with %d devices, PIN: %s", len(accessories), pin)
+			server.ListenAndServe(cmd.Context())
+
+			return nil
+		},
+	}
+
+	homekitCmd.Flags().StringVar(&pin, "pin", "00102003", "HomeKit PIN")
+
+	return homekitCmd
 }
