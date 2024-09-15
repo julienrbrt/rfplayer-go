@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// global flags
+var (
+	port   string
+	id     int
+	action string
+)
+
 // RootCmd returns the root command for the rfplayer CLI.
 func RootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -26,7 +33,6 @@ func RootCmd() *cobra.Command {
 		pingCmd(),
 		emitCmd(),
 		recordCmd(),
-		listenCmd(),
 		setFreqCmd(),
 		statusCmd(),
 		homekitCmd(),
@@ -35,16 +41,6 @@ func RootCmd() *cobra.Command {
 
 	return rootCmd
 }
-
-var (
-	port     string
-	protocol string
-	id       int
-	action   string
-	band     string
-	freq     int
-	metadata string
-)
 
 func initRFPlayer() (*rfplayer.RFPlayer, error) {
 	rf, err := rfplayer.New(port)
@@ -59,6 +55,7 @@ func helloCmd() *cobra.Command {
 		Use:   "hello",
 		Short: "Display device information",
 		Long:  "Send HELLO command to RFPlayer to get device information",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
 			if err != nil {
@@ -72,7 +69,6 @@ func helloCmd() *cobra.Command {
 			}
 
 			cmd.Println(response)
-
 			return nil
 		},
 	}
@@ -84,6 +80,7 @@ func pingCmd() *cobra.Command {
 	pingCmd := &cobra.Command{
 		Use:   "ping",
 		Short: "Ping the RFPlayer device",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
 			if err != nil {
@@ -108,9 +105,13 @@ func pingCmd() *cobra.Command {
 }
 
 func emitCmd() *cobra.Command {
+	var protocol string
+
 	emitCmd := &cobra.Command{
 		Use:   "emit",
 		Short: "Emit a signal",
+		Long:  `Emit a signal using the RFPlayer.`,
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
 			if err != nil {
@@ -129,6 +130,7 @@ func emitCmd() *cobra.Command {
 			return nil
 		},
 	}
+
 	emitCmd.Flags().StringVar(&protocol, "protocol", "", "Protocol to use")
 	emitCmd.Flags().IntVar(&id, "id", 0, "ID to use")
 	emitCmd.Flags().StringVar(&action, "action", "ON", "Action to perform (ON/OFF)")
@@ -137,9 +139,12 @@ func emitCmd() *cobra.Command {
 }
 
 func recordCmd() *cobra.Command {
+	var metadata string
+
 	recordCmd := &cobra.Command{
 		Use:   "record",
-		Short: "Record a signal",
+		Short: "Record a signal using Parrot",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
 			if err != nil {
@@ -147,13 +152,11 @@ func recordCmd() *cobra.Command {
 			}
 			defer rf.Close()
 
-			resp, err := rf.RecordSignal(id, action, metadata)
+			_, err = rf.RecordSignal(id, action, metadata)
 			if err != nil {
 				return fmt.Errorf("failed to record signal: %v", err)
 			}
-
-			cmd.Println(resp)
-			cmd.Println("Signal recorded successfully")
+			cmd.Println("Signal is being recorded... Press physical button on remote control to cancel capture.")
 
 			return nil
 		},
@@ -161,43 +164,24 @@ func recordCmd() *cobra.Command {
 
 	recordCmd.Flags().IntVar(&id, "id", 0, "ID to use")
 	recordCmd.Flags().StringVar(&action, "action", "ON", "Action to record (ON/OFF)")
-	recordCmd.Flags().StringVar(&metadata, "metadata", "", "Metadata to record")
+	recordCmd.Flags().StringVar(&metadata, "metadata", "", "Metadata to record to help identify the signal later")
 
 	return recordCmd
 }
 
-func listenCmd() *cobra.Command {
-	listenCmd := &cobra.Command{
-		Use:   "listen",
-		Short: "Listen for signals",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			rf, err := initRFPlayer()
-			if err != nil {
-				return err
-			}
-			defer rf.Close()
-
-			cmd.Println("Listening for signals... Press Ctrl+C to stop.")
-
-			if err := rf.StartListening(func(signal string) {
-				cmd.Println("Received signal:", signal)
-			}); err != nil {
-				return fmt.Errorf("error while listening: %v", err)
-			}
-
-			return nil
-		},
-	}
-	return listenCmd
-}
-
 func setFreqCmd() *cobra.Command {
+	var (
+		band string
+		freq int
+	)
+
 	setFreqCmd := &cobra.Command{
 		Use:   "setfreq",
-		Short: "Set frequency",
+		Short: "Set frequency for the RFPlayer based on the band",
 		Long: `Set frequency for the RFPlayer. The frequency is specified in KHz.
 The available bands are L (0 (disabled), 433420 and 433920) and H (0 (disabled), 868950 and 868350)`,
 		Example: `rfplayer setfreq --band L --freq 433920`,
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
 			if err != nil {
@@ -221,12 +205,13 @@ The available bands are L (0 (disabled), 433420 and 433920) and H (0 (disabled),
 
 	setFreqCmd.Flags().StringVar(&band, "band", "L", "Frequency band (L/H)")
 	setFreqCmd.Flags().IntVar(&freq, "freq", 433920, "Frequency in KHz")
+	setFreqCmd.MarkFlagRequired("band")
+	setFreqCmd.MarkFlagRequired("freq")
 
 	return setFreqCmd
 }
 
 func statusCmd() *cobra.Command {
-	var statusType string
 	var format string
 
 	statusCmd := &cobra.Command{
@@ -239,12 +224,18 @@ func statusCmd() *cobra.Command {
 - PARROT: Parrot configuration
 - ALARM: Alarm configuration
 You can also specify the output format: TEXT (default), XML, or JSON`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rf, err := initRFPlayer()
 			if err != nil {
 				return err
 			}
 			defer rf.Close()
+
+			statusType := ""
+			if len(args) > 0 {
+				statusType = args[0]
+			}
 
 			status, err := rf.GetStatus(statusType, format)
 			if err != nil {
@@ -273,7 +264,6 @@ You can also specify the output format: TEXT (default), XML, or JSON`,
 		},
 	}
 
-	statusCmd.Flags().StringVar(&statusType, "type", "", "Type of status to retrieve (SYSTEM, RADIO, TRANSCODER, PARROT, ALARM)")
 	statusCmd.Flags().StringVar(&format, "format", "TEXT", "Output format (TEXT, XML, JSON)")
 
 	return statusCmd

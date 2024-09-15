@@ -73,7 +73,7 @@ func (r *RFPlayer) SendCommand(cmd string) (string, error) {
 	response, err := reader.ReadString('\r')
 	if err != nil {
 		if err == io.EOF {
-			return "", fmt.Errorf("device disconnected (EOF)")
+			return "", nil // EOF is expected when async request is sent
 		}
 
 		return "", fmt.Errorf("failed to read response: %v", err)
@@ -113,21 +113,6 @@ func (r *RFPlayer) EnableReceiver(protocols ...string) (string, error) {
 func (r *RFPlayer) SetFormat(format string) (string, error) {
 	cmd := "FORMAT " + format
 	return r.SendCommand(cmd)
-}
-
-// StartListening starts listening for incoming RF signals
-func (r *RFPlayer) StartListening(callback func(string)) error {
-	reader := bufio.NewReader(r.port)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return fmt.Errorf("error reading from serial port: %v", err)
-		}
-		callback(strings.TrimSpace(line))
-	}
 }
 
 // GetStatus retrieves the status of the RFPlayer
