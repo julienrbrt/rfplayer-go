@@ -11,6 +11,35 @@ go install github.com/julienrbrt/rfplayer-go/cmd/rfplayer@latest
 
 ## How to use
 
+Help is available via the command line:
+
 ```bash
 rfplayer --help
 ```
+
+Record a signal (_parrot_):
+
+```bash
+rfplayer record --action ON --id 1 --metadata "zonwering-1-1"
+```
+
+Change the frequency band of the RFPlayer:
+
+```bash
+rfplayer setfreq --band H --freq 868350
+rfplayer setfreq --band L --freq 433420
+```
+
+## Troubleshooting
+
+> [!note]
+> I have sold the RFPlayer, so I won't be able to provide support for this project anymore.
+> If you have any issues, please open an issue on GitHub and I will try to help.
+
+If you need to use `sudo` to access the serial port, you can add your user to the `dialout` group:
+
+```bash
+sudo usermod -aG dialout $USER
+```
+
+Then, log out and log back in for the changes to take effect.
