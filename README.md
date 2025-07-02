@@ -32,10 +32,6 @@ rfplayer setfreq --band L --freq 433420
 
 ## Troubleshooting
 
-> [!note]
-> I have sold the RFPlayer, so I won't be able to provide support for this project anymore.
-> If you have any issues, please open an issue on GitHub and I will try to help.
-
 If you need to use `sudo` to access the serial port, you can add your user to the `dialout` group:
 
 ```bash
