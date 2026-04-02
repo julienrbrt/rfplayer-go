@@ -11,10 +11,14 @@ import (
 )
 
 type RFPlayer struct {
-	port *serial.Port
+	port io.ReadWriteCloser
 }
 
-// New creates a new RFPlayer instance
+type flusher interface {
+	Flush() error
+}
+
+// New creates a new RFPlayer instance connected to the given serial port.
 func New(portName string) (*RFPlayer, error) {
 	config := &serial.Config{
 		Name:        portName,
@@ -30,7 +34,12 @@ func New(portName string) (*RFPlayer, error) {
 	return &RFPlayer{port: port}, nil
 }
 
-// Close closes the serial connection
+// NewWithPort creates a new RFPlayer instance with a custom io.ReadWriteCloser.
+func NewWithPort(port io.ReadWriteCloser) *RFPlayer {
+	return &RFPlayer{port: port}
+}
+
+// Close closes the serial connection.
 func (r *RFPlayer) Close() error {
 	return r.port.Close()
 }
@@ -62,7 +71,9 @@ func (r *RFPlayer) Hello() (string, error) {
 // SendCommand sends a command to the RFPlayer and returns the response
 func (r *RFPlayer) SendCommand(cmd string) (string, error) {
 	// Flush input buffer
-	r.port.Flush()
+	if f, ok := r.port.(flusher); ok {
+		f.Flush()
+	}
 
 	_, err := r.port.Write([]byte("ZIA++" + cmd + "\r"))
 	if err != nil {

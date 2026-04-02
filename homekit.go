@@ -1,6 +1,8 @@
 package rfplayer
 
 import (
+	"log"
+
 	"github.com/brutella/hap/accessory"
 )
 
@@ -23,17 +25,15 @@ func NewRFDeviceAccessory(info accessory.Info, rf *RFPlayer, id int, protocol st
 		protocol: protocol,
 	}
 
-	var gerr error
 	a.Switch.Switch.On.OnValueRemoteUpdate(func(on bool) {
 		action := "OFF"
 		if on {
 			action = "ON"
 		}
-		_, err := a.rf.EmitSignal(a.protocol, a.id, action)
-		if err != nil {
-			gerr = err
+		if _, err := a.rf.EmitSignal(a.protocol, a.id, action); err != nil {
+			log.Printf("failed to emit signal for device %d: %v", a.id, err)
 		}
 	})
 
-	return &a, gerr
+	return &a, nil
 }

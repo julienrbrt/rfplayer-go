@@ -1,16 +1,18 @@
 module github.com/julienrbrt/rfplayer-go
 
-go 1.23.0
+go 1.25.0
 
 require (
-	github.com/brutella/hap v0.0.34
+	github.com/brutella/hap v0.0.35
 	github.com/spf13/cobra v1.8.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
+	gotest.tools/v3 v3.5.2
 )
 
 require (
-	github.com/brutella/dnssd v1.2.12 // indirect
+	github.com/brutella/dnssd v1.2.14 // indirect
 	github.com/go-chi/chi v1.5.5 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -22,7 +24,7 @@ require (
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.25.0 // indirect
 	gopkg.in/Regis24GmbH/go-diacritics.v2 v2.0.3 // indirect

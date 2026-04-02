@@ -37,6 +37,7 @@ func RootCmd() *cobra.Command {
 		statusCmd(),
 		homekitCmd(),
 		factoryResetCmd(),
+		versionCmd(),
 	)
 
 	return rootCmd
@@ -242,21 +243,18 @@ You can also specify the output format: TEXT (default), XML, or JSON`,
 				return fmt.Errorf("failed to get status: %v", err)
 			}
 
-			// improve output formatting
-			if strings.EqualFold(format, "JSON") {
-				// pretty print JSON
-				data := map[string]interface{}{}
-				if err := json.Unmarshal([]byte(status), &data); err != nil {
-					return fmt.Errorf("failed to unmarshal JSON: %v", err)
-				}
-
-				statusBz, err := json.Marshal(data)
-				if err != nil {
-					return fmt.Errorf("failed to marshal JSON: %v", err)
-				}
-
-				status = string(statusBz)
+			// pretty print JSON
+			var data interface{}
+			if err := json.Unmarshal([]byte(status), &data); err != nil {
+				return fmt.Errorf("failed to unmarshal JSON: %v", err)
 			}
+
+			pretty, err := json.MarshalIndent(data, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON: %v", err)
+			}
+
+			status = string(pretty)
 
 			cmd.Println(status)
 
@@ -377,4 +375,15 @@ func homekitCmd() *cobra.Command {
 	homekitCmd.Flags().StringVar(&pin, "pin", "00102003", "HomeKit PIN")
 
 	return homekitCmd
+}
+
+func versionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print version information",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Printf("rfplayer %s (commit: %s, built: %s)\n", Version, Commit, Date)
+		},
+	}
 }

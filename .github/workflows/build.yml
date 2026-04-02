@@ -11,4 +11,5 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "stable"
+      - run: make lint
       - run: make build
