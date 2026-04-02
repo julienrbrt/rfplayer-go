@@ -244,7 +244,7 @@ You can also specify the output format: TEXT (default), XML, or JSON`,
 			}
 
 			// pretty print JSON
-			var data interface{}
+			var data any
 			if err := json.Unmarshal([]byte(status), &data); err != nil {
 				return fmt.Errorf("failed to unmarshal JSON: %v", err)
 			}

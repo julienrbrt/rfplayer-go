@@ -21,21 +21,21 @@ func GetParrotDevices(rf *RFPlayer) ([]ParrotDevice, error) {
 		return nil, fmt.Errorf("failed to get Parrot status: %v", err)
 	}
 
-	var statusData map[string]interface{}
+	var statusData map[string]any
 	if err = json.Unmarshal([]byte(status), &statusData); err != nil {
 		return nil, fmt.Errorf("failed to parse Parrot status: %v", err)
 	}
 
 	var devices []ParrotDevice
 
-	parrotStatus, ok := statusData["parrotStatus"].(map[string]interface{})
+	parrotStatus, ok := statusData["parrotStatus"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid Parrot status format")
 	}
 
 	for key, value := range parrotStatus {
 		if strings.HasPrefix(key, "entry") {
-			entry, ok := value.(map[string]interface{})
+			entry, ok := value.(map[string]any)
 			if !ok {
 				continue
 			}
